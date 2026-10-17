@@ -1,0 +1,29 @@
+name = "TraitCSV"
+uuid = "e712023c-2e26-4d3a-87f2-b4bc91f10df5"
+version = "0.0.1"
+authors = ["Frank Hellmann"]
+
+[deps]
+TraitTables = "948581bb-3251-4b70-b92e-dfd8fc23d030"
+TraitWorld = "7a3c1e52-9b4d-4f6e-8a21-5d0c3b9e7f14"
+
+[weakdeps]
+InlineStrings = "842dd82b-1e85-43dc-bf29-5d0ee9dffc48"
+
+[extensions]
+TraitCSVInlineStringsExt = "InlineStrings"
+
+[sources]
+TraitTables = {path = "../TraitTables"}
+TraitWorld = {path = "../TraitWorld"}
+
+[compat]
+InlineStrings = "1.4"
+julia = "1.13"
+
+[extras]
+InlineStrings = "842dd82b-1e85-43dc-bf29-5d0ee9dffc48"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test", "InlineStrings"]
