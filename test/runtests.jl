@@ -20,6 +20,12 @@ using InlineStrings: String15
         emptylike(c) = Bool[]
     end
     @test_throws ArgumentError TraitCSV.parse("a,b\n1\n")
+    # missing cells: an empty cell, in a column of numbers
+    tm = TraitCSV.parse("t,s1,n,tag\n0.1,1.5,1,a\n0.2,,2,b\n0.3,2.5,,\n")
+    dm = describe(tm)
+    @test [s.eltype for s in dm] == ["Float64", "Union{Missing, Float64}", "Union{Missing, Int64}", "String"]
+    @test dm[2].mean == 2.0 && dm[2].nmissing == 1 && dm[3].nmissing == 1 && dm[4].nmissing == 0
+    @test ismissing(cell(tm["s1"], 2)) && cell(tm["tag"], 3) == ""
     path = tempname() * ".csv"
     write(path, "x;y\n1;2\n")
     @test size(TraitCSV.read(path; delim = ';')) == (1, 2)

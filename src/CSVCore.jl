@@ -1,7 +1,7 @@
 # CSVCore: the trait module. The column types a reader can produce are a trait:
 #   - `CSVColumn{T} <: Column`: a column the reader parses cells into, cell by cell; what it
-#     produces is a column of a TraitTables table as it is. `Vector{Int}`, `Vector{Float64}` and
-#     `Vector{String}` conform here; another cell type conforms by a conformance in its own
+#     produces is a column of a TraitTables table as it is. `Vector{Int}`, `Vector{Float64}`, the
+#     two with missing cells (an empty cell) and `Vector{String}` conform here; another cell type conforms by a conformance in its own
 #     package or in an extension (InlineStrings' `String15`: ext/TraitCSVInlineStringsExt.jl).
 #     A conformance is a method of the conformance registry, so adding one invalidates no
 #     compiled code of the reader: this is what CSV.jl's package extensions become.
@@ -27,13 +27,25 @@ end
     parsecell!(c, s, a, b) = (x = tryparse(Float64, SubString(s, a, b)); x === nothing ? false : (push!(c, x); true))
     emptylike(c) = Float64[]
 end
+# columns with missing cells: an empty cell is `missing` (tried after the columns without)
+@implement CSVColumn Vector{Union{Missing,Int}} begin
+    parsecell!(c, s, a, b) = b < a ? (push!(c, missing); true) :
+        (x = tryparse(Int, SubString(s, a, b)); x === nothing ? false : (push!(c, x); true))
+    emptylike(c) = Union{Missing,Int}[]
+end
+@implement CSVColumn Vector{Union{Missing,Float64}} begin
+    parsecell!(c, s, a, b) = b < a ? (push!(c, missing); true) :
+        (x = tryparse(Float64, SubString(s, a, b)); x === nothing ? false : (push!(c, x); true))
+    emptylike(c) = Union{Missing,Float64}[]
+end
 @implement CSVColumn Vector{String} begin
     parsecell!(c, s, a, b) = (push!(c, String(SubString(s, a, b))); true)
     emptylike(c) = String[]
 end
 
-"The column types tried by default, in order: `Int`, `Float64`, `String`."
-defaulttypes() = CSVColumn[Dynamic{CSVColumn}(Int[]), Dynamic{CSVColumn}(Float64[]), Dynamic{CSVColumn}(String[])]
+"The column types tried by default, in order: `Int`, `Float64`, the two with missing cells, `String`."
+defaulttypes() = CSVColumn[Dynamic{CSVColumn}(Int[]), Dynamic{CSVColumn}(Float64[]), Dynamic{CSVColumn}(Union{Missing,Int}[]),
+                           Dynamic{CSVColumn}(Union{Missing,Float64}[]), Dynamic{CSVColumn}(String[])]
 "Append a candidate column type (an empty column of it) to `types`."
 addtype!(types::Vector{CSVColumn}, c::CSVColumn) = (push!(types, c); types)
 

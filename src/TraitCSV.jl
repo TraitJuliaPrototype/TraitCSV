@@ -18,7 +18,7 @@ export CSVColumn
     TraitCSV.read(path; delim = ',', types = nothing) -> TraitTables.Table
 
 Read a CSV file. Each column gets the first column type in `types` whose cells all parse: by
-default `Int`, `Float64`, `String`. `types` lists empty columns of the candidate types, in order,
+default `Int`, `Float64`, `Union{Missing, Int}`, `Union{Missing, Float64}` (an empty cell is missing), `String`. `types` lists empty columns of the candidate types, in order,
 for instance `[Int[], Float64[], String15[], String[]]`.
 """
 function read(path::AbstractString; delim::Union{Char,UInt8} = ',', types = nothing)
@@ -40,6 +40,7 @@ end
 TraitWorld.@workload begin
     t = parse("a,b,c\n1,2.5,x\n2,3.5,\"y, z\"\n")
     TraitTables.summary_text(t)
+    TraitTables.summary_text(parse("a,b,c\n1,,x\n,3.5,y\n2,1.5,z\n"))        # missing cells
     path = tempname() * ".csv"
     Base.write(path, "x,y\n0.1,1\n0.2,2\n")
     TraitTables.summary_text(read(path))
