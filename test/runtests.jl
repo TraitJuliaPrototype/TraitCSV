@@ -14,6 +14,7 @@ using InlineStrings: String15
     @test describe(t2)[1].eltype == "String" && describe(t2)[2].eltype == "Int64"
     t3 = TraitCSV.parse("s\nab\ncd\n"; types = [Int[], String15[], String[]])
     @test describe(t3)[1].eltype == "String15"
+    @test occursin("cd", sprint(show, MIME"text/plain"(), t3))          # printed (a String15 cell's text is a String)
     # a conformance by a package that owns neither the trait nor the type is refused (rule 3)
     @test_throws Exception @eval @implement CSVColumn Vector{Bool} begin
         parsecell!(c, s, a, b) = false
