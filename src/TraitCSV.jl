@@ -2,8 +2,8 @@
     TraitCSV
 
 A CSV reader written in the trait world (`CSVCore`), producing TraitTables tables. The column
-types it can produce are a trait, `CSVColumn`; a cell type of another package joins by a
-conformance (InlineStrings' `String15`, in an extension), which invalidates no compiled code of
+types it can produce are a trait, `CSVColumn`; a cell type of another package joins by an
+implementation (InlineStrings' `String15`, in an extension), which invalidates no compiled code of
 the reader. This module is the ordinary layer: `TraitCSV.read(path)`.
 """
 module TraitCSV

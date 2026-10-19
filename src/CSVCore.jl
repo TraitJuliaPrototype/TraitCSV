@@ -1,13 +1,13 @@
 # CSVCore: the trait module. The column types a reader can produce are a trait:
 #   - `CSVColumn{T} <: Column`: a column the reader parses cells into, cell by cell; what it
 #     produces is a column of a TraitTables table as it is. `Vector{Int}`, `Vector{Float64}`, the
-#     two with missing cells (an empty cell) and `Vector{String}` conform here; another cell type conforms by a conformance in its own
+#     two with missing cells (an empty cell) and `Vector{String}` conform here; another cell type conforms by an implementation in its own
 #     package or in an extension (InlineStrings' `String15`: ext/TraitCSVInlineStringsExt.jl).
-#     A conformance is a method of the conformance registry, so adding one invalidates no
+#     An implementation is a method of the implementation registry, so adding one invalidates no
 #     compiled code of the reader: this is what CSV.jl's package extensions become.
 #   - The reader tries the candidate column types in order, per column; each attempt runs a
 #     worker compiled per column type, the key, and kept in the image of the package that
-#     declared the conformance.
+#     declared the implementation.
 @trait_module module CSVCore
 using TraitWorld
 using TraitTables: TraitTables, Column, Table

@@ -1,6 +1,6 @@
-# InlineStrings' String15 as a column type of the reader: a conformance, declared in an
+# InlineStrings' String15 as a column type of the reader: an implementation, declared in an
 # extension of TraitCSV (which counts as TraitCSV, the trait's owner). Loading InlineStrings adds
-# one conformance method; no compiled code of the reader is invalidated, unlike CSV.jl's
+# one implementation method; no compiled code of the reader is invalidated, unlike CSV.jl's
 # CSVInlineStringsExt, which adds methods to CSV's internal functions.
 module TraitCSVInlineStringsExt
 using TraitWorld
