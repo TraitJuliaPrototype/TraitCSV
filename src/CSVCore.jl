@@ -121,7 +121,7 @@ function readtable(s::String, delim::UInt8, types::Vector{CSVColumn})::Table
     for k in eachindex(names)
         col = nothing
         for c in types
-            col = fillcolumn(emptylike(c), s, spans[k])::Union{Nothing,Dynamic{Column}}
+            col = fillcolumn(compiled_for(emptylike(c)), s, spans[k])::Union{Nothing,Dynamic{Column}}   # the column type's worker
             col === nothing || break
         end
         col === nothing && throw(ArgumentError("column \"$(names[k])\": no column type fits its cells"))
