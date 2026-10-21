@@ -111,7 +111,7 @@ function fillcolumn(c::CSVColumn, s::String, spans::Vector{UnitRange{Int}})::Uni
     for r in spans
         parsecell!(c, s, first(r), last(r)) || return nothing
     end
-    return Dynamic{Column}(c)
+    return Dynamic{Column}(with_dynamic(c))     # the library's choice for a parsed column: compiled once downstream
 end
 
 "Read CSV text into a table; each column gets the first of `types` whose cells all parse."

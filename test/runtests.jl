@@ -4,7 +4,7 @@ using InlineStrings: String15
 @testset "TraitCSV" begin
     t = TraitCSV.parse("a,b,c,d\n1,2.5,x,7\n2,3.5,\"y, z\",8.5\n\n3,4,w,9\n")
     @test colnames(t) == ["a", "b", "c", "d"]
-    @test t.cols isa Vector{Dynamic{Column}}
+    @test t.cols isa Vector{Kept{Column}} && all(c -> !getfield(c, :compiled), t.cols)   # parsed columns: Dynamic, the library's cast
     d = describe(t)
     @test [s.eltype for s in d] == ["Int64", "Float64", "String", "Float64"]
     @test d[1].sum == 6.0 && d[2].mean == 10 / 3
