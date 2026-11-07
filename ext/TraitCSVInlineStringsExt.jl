@@ -1,7 +1,7 @@
-# InlineStrings' String15 as a column type of the reader: an implementation, declared in an
-# extension of TraitCSV (which counts as TraitCSV, the trait's owner). Loading InlineStrings adds
-# one implementation method; no compiled code of the reader is invalidated, unlike CSV.jl's
-# CSVInlineStringsExt, which adds methods to CSV's internal functions.
+# InlineStrings' String15 as a column type of the reader: a membership, declared in an extension of
+# TraitCSV (which counts as TraitCSV, the trait's owner). Loading InlineStrings declares one
+# membership; no compiled code of the reader is invalidated, unlike CSV.jl's CSVInlineStringsExt,
+# which adds methods to CSV's internal functions.
 module TraitCSVInlineStringsExt
 using TraitWorld
 using TraitCSV: CSVColumn, parsecell!, emptylike
@@ -12,9 +12,11 @@ using InlineStrings: String15
     emptylike(c) = String15[]
 end
 
-TraitWorld.@workload begin
-    TraitCSV_ = Base.loaded_modules[Base.PkgId(Base.UUID("e712023c-2e26-4d3a-87f2-b4bc91f10df5"), "TraitCSV")]
-    TraitCSV_.parse("s,n\nab,1\ncd,2\n"; types = [Int[], Float64[], String15[], String[]])
+# a precompile workload, run while the extension's image is built
+if ccall(:jl_generating_output, Cint, ()) == 1
+    let TraitCSV_ = Base.loaded_modules[Base.PkgId(Base.UUID("e712023c-2e26-4d3a-87f2-b4bc91f10df5"), "TraitCSV")]
+        TraitCSV_.parse("s,n\nab,1\ncd,2\n"; types = [Int[], Float64[], String15[], String[]])
+    end
 end
 
 end

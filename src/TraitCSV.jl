@@ -1,10 +1,9 @@
 """
     TraitCSV
 
-A CSV reader written in the trait world (`CSVCore`), producing TraitTables tables. The column
-types it can produce are a trait, `CSVColumn`; a cell type of another package joins by an
-implementation (InlineStrings' `String15`, in an extension), which invalidates no compiled code of
-the reader. This module is the ordinary layer: `TraitCSV.read(path)`.
+A CSV reader written with traits (`CSVCore`), producing TraitTables tables. The column types it
+can produce are a trait, `CSVColumn`; a cell type of another package joins by a membership
+(InlineStrings' `String15`, in an extension), which invalidates no compiled code of the reader. This module is the ordinary layer: `TraitCSV.read(path)`.
 """
 module TraitCSV
 using TraitWorld
@@ -36,8 +35,10 @@ function parse(text::AbstractString; delim::Union{Char,UInt8} = ',', types = not
     return CSVCore.readtable(String(text), UInt8(delim), ts)
 end
 
-# a precompile workload: every default column type, quoted cells, and a file
-TraitWorld.@workload begin
+# a precompile workload, run while the package image is built: every default column type, quoted
+# cells, and a file
+if ccall(:jl_generating_output, Cint, ()) == 1
+    let
     t = parse("a,b,c\n1,2.5,x\n2,3.5,\"y, z\"\n")
     TraitTables.summary_text(t)
     TraitTables.summary_text(parse("a,b,c\n1,,x\n,3.5,y\n2,1.5,z\n"))        # missing cells
@@ -45,6 +46,7 @@ TraitWorld.@workload begin
     Base.write(path, "x,y\n0.1,1\n0.2,2\n")
     TraitTables.summary_text(read(path))
     rm(path; force = true)
+    end
 end
 
 end

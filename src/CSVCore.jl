@@ -1,20 +1,20 @@
 # CSVCore: the trait module. The column types a reader can produce are a trait:
-#   - `CSVColumn{T} <: Column`: a column the reader parses cells into, cell by cell; what it
+#   - `CSVColumn{T} <: Column{T}`: a column the reader parses cells into, cell by cell; what it
 #     produces is a column of a TraitTables table as it is. `Vector{Int}`, `Vector{Float64}`, the
-#     two with missing cells (an empty cell) and `Vector{String}` conform here; another cell type conforms by an implementation in its own
-#     package or in an extension (InlineStrings' `String15`: ext/TraitCSVInlineStringsExt.jl).
-#     An implementation is a method of the implementation registry, so adding one invalidates no
-#     compiled code of the reader: this is what CSV.jl's package extensions become.
-#   - The reader tries the candidate column types in order, per column; each attempt runs a
-#     worker compiled per column type, the key, and kept in the image of the package that
-#     declared the implementation.
-@trait_module module CSVCore
+#     two with missing cells (an empty cell) and `Vector{String}` join here; another cell type joins
+#     by a membership in its own package or in an extension (InlineStrings' `String15`:
+#     ext/TraitCSVInlineStringsExt.jl). A membership invalidates no compiled code of the reader:
+#     this is what CSV.jl's package extensions become.
+#   - The reader tries the candidate column types in order, per column; each attempt runs code
+#     compiled per column type, where the reader casts the column with `compiled_for`.
+module CSVCore
 using TraitWorld
 using TraitTables: TraitTables, Column, Table
+@trait_module
 export CSVColumn, parsecell!, emptylike, defaulttypes, addtype!, readtable
 
 "A column the reader parses cells into: `parsecell!` appends the cell `s[a:b]` or returns `false` (the column type does not fit)."
-@trait CSVColumn{T} <: Column begin
+@trait CSVColumn{T} <: Column{T} begin
     T = eltype(Self)
     parsecell!(c::CSVColumn, s::String, a::Int, b::Int)::Bool
     emptylike(c::CSVColumn)::Self
@@ -44,8 +44,7 @@ end
 end
 
 "The column types tried by default, in order: `Int`, `Float64`, the two with missing cells, `String`."
-defaulttypes() = CSVColumn[Dynamic{CSVColumn}(Int[]), Dynamic{CSVColumn}(Float64[]), Dynamic{CSVColumn}(Union{Missing,Int}[]),
-                           Dynamic{CSVColumn}(Union{Missing,Float64}[]), Dynamic{CSVColumn}(String[])]
+defaulttypes() = CSVColumn[Int[], Float64[], Union{Missing,Int}[], Union{Missing,Float64}[], String[]]
 "Append a candidate column type (an empty column of it) to `types`."
 addtype!(types::Vector{CSVColumn}, c::CSVColumn) = (push!(types, c); types)
 
@@ -104,14 +103,14 @@ function scan(s::String, delim::UInt8)
     return names, spans
 end
 
-# --- reading: a worker per candidate column type ------------------------------------------------
+# --- reading: code per candidate column type --------------------------------------------------
 
 "Parse every cell into `c`; the filled column, or `nothing` at the first cell that does not fit."
-function fillcolumn(c::CSVColumn, s::String, spans::Vector{UnitRange{Int}})::Union{Nothing,Dynamic{Column}}
+function fillcolumn(c::CSVColumn, s::String, spans::Vector{UnitRange{Int}})
     for r in spans
         parsecell!(c, s, first(r), last(r)) || return nothing
     end
-    return Dynamic{Column}(with_dynamic(c))     # the library's choice for a parsed column: compiled once downstream
+    return c
 end
 
 "Read CSV text into a table; each column gets the first of `types` whose cells all parse."
@@ -121,7 +120,7 @@ function readtable(s::String, delim::UInt8, types::Vector{CSVColumn})::Table
     for k in eachindex(names)
         col = nothing
         for c in types
-            col = fillcolumn(compiled_for(emptylike(c)), s, spans[k])::Union{Nothing,Dynamic{Column}}   # the column type's worker
+            col = fillcolumn(compiled_for(emptylike(c)), s, spans[k])    # the column type's code
             col === nothing || break
         end
         col === nothing && throw(ArgumentError("column \"$(names[k])\": no column type fits its cells"))
