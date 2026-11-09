@@ -31,3 +31,8 @@ using InlineStrings: String15
     write(path, "x;y\n1;2\n")
     @test size(TraitCSV.read(path; delim = ';')) == (1, 2)
 end
+
+# a cast or a carried attribute at a parameter no trait types has no effect (open issue 162)
+@testset "TraitCSV: no casts without effect" begin
+    @test isempty(detect_unused_casts(TraitCSV))
+end
