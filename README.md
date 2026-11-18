@@ -1,17 +1,42 @@
 # TraitCSV
 
-A CSV reader written in the trait world, producing TraitTables tables: the reader half of TraitReport's form (t) (`../TraitReport/README.md`). Decided in session 26 as the principled fix for CSV.jl's invalidations (`../writeup/decisions.md`); first version in session 27.
+A CSV reader written with traits, producing TraitTables tables. The column types it can produce are a trait, `CSVColumn`. A cell type of another package joins by a membership, in its own package or in an extension; a membership invalidates no compiled code of the reader. This is what CSV.jl's package extensions become.
 
-## On the unified build (branch `unified`, W-104)
+## The package
 
-This branch follows the design under "traits are abstract types" on Julia's unified build (`julia-unified`, branch `unified`), with TraitWorld's branch `unified`. The sections below describe the earlier build (branch `main`).
+- **`TraitCSV`** (`src/TraitCSV.jl`): the ordinary layer. `TraitCSV.read(path; delim = ',', types = nothing)` and `TraitCSV.parse(text; …)` return a `TraitTables.Table`.
+- **`CSVCore`** (`src/CSVCore.jl`): the trait module (`@trait_module`).
+  - `@trait CSVColumn{T} <: Column{T}`: a column the reader parses cells into, with the operations `parsecell!(c, s, a, b)::Bool` and `emptylike(c)::Self`, and `T = eltype(Self)`.
+  - Members: `Vector{Int}`, `Vector{Float64}`, `Vector{Union{Missing,Int}}`, `Vector{Union{Missing,Float64}}`, `Vector{String}`.
+  - `defaulttypes()`, `addtype!(types, c)`: the candidate column types, as empty columns in a `Vector{CSVColumn}`; `readtable(s, delim, types)`.
+- **The extension** `TraitCSVInlineStringsExt` (`ext/`): `Vector{String15}` joins `CSVColumn` when InlineStrings is loaded.
 
-- `CSVColumn{T} <: Column{T}`; candidate columns plain in a `Vector{CSVColumn}`, cast at the reader's loop; the InlineStrings extension declares `Vector{String15}` a member.
+**Reading.** A byte scan finds each column's cells. Per column, the candidate column types are tried in order (by default `Int`, `Float64`, the two with missing cells, `String`); the first whose cells all parse is taken. Quoted cells may hold the delimiter. An empty cell is `missing` in a numeric column and an empty string in a column of strings.
+
+## How it uses the design
+
+- `CSVColumn` erases nothing by default (no `@default_dynamic`). The candidate columns are plain members in a container typed by the trait.
+- Not yet on the design's one way to erase: the reader casts each candidate column with `compiled_for(emptylike(c))` at the call of `fillcolumn` (`src/CSVCore.jl`), and the tests call `detect_unused_casts` (`test/runtests.jl`). This is recorded as deviation T-128 of the traits reference.
+
+## Running
+
+From the workspace root:
+
+```sh
+source env.sh
+julia-next/julia --project=TraitCSV -e 'using Pkg; Pkg.test()'
+```
+
+The tests read files with and without the extension, refuse a membership declared by a package that owns neither the trait nor the type, and read missing cells.
+
+## Results
+
+The current numbers, each against plain Julia or Python, are in the design repository's `writeup/design/evidence.md`. The suites' last results are in its `writeup/state.md` §3.
+
 - Tests: 14 pass on `julia-unified` (2026-11-08, `unified` f90d152208; `experiments/implementation/stack/logs/w104-slice1-TraitCSV.log`).
 
-- **`CSVColumn{T} <: Column`** (`src/CSVCore.jl`): the columns the reader can parse into, `parsecell!(c, s, a, b)` and `emptylike(c)`. Implementations: `Vector{Int}`, `Vector{Float64}`, `Vector{Union{Missing, Int}}` and `Vector{Union{Missing, Float64}}` (an empty cell is missing; session 30), `Vector{String}`; InlineStrings' `String15` in the extension `ext/TraitCSVInlineStringsExt.jl`.
-- **What package extensions become:** CSV.jl's `CSVInlineStringsExt` adds methods to CSV's internal functions and so discards CSV's compiled read path whenever InlineStrings loads, also for files without strings. Here the extension declares one implementation, a method of the `conformance` registry, which invalidates no compiled code of the reader (TraitReport row 11).
-- **Reading:** a byte scan finds the cells' spans per column; per column, the candidate column types are tried in order (`types = [Int[], Float64[], String15[], String[]]`; by default `Int`, `Float64`, the two with missing cells, `String`), each attempt a worker compiled per column type. Quoted cells may hold the delimiter; an empty cell is missing in a numeric column, an empty string in a strings column.
-- **Definition checking at work:** a `sizehint!` on a trait object in the first draft was refused when the package compiled, naming the line: `sizehint!` is not an operation of `CSVColumn`.
+## The design
 
-Tests: `julia --project=. -e 'using Pkg; Pkg.test()'` (13, with the extension, a refused implementation by a package that owns neither trait nor type, and missing cells).
+- The design: the design repository's `writeup/reference/` (traits, facts, compiler, lowering).
+- The lessons of the ports: `writeup/intro/porting.md`.
+- TraitReport (`../TraitReport/`) reads with this package in its form with traits.
