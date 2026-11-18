@@ -37,7 +37,7 @@ end
 
 # a precompile workload, run while the package image is built: every default column type, quoted
 # cells, and a file
-if ccall(:jl_generating_output, Cint, ()) == 1
+if Base.generating_output(true)
     let
     t = parse("a,b,c\n1,2.5,x\n2,3.5,\"y, z\"\n")
     TraitTables.summary_text(t)
