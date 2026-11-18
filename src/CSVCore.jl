@@ -11,7 +11,7 @@
 module CSVCore
 using TraitWorld
 using TraitTables: TraitTables, Column, Table
-@trait_module first_seen = false     # a trait argument compiled as Julia compiles it (traits §7.1; the library's default differs: T-127)
+@trait_module
 export CSVColumn, parsecell!, emptylike, defaulttypes, addtype!, readtable
 
 "A column the reader parses cells into: `parsecell!` appends the cell `s[a:b]` or returns `false` (the column type does not fit)."
