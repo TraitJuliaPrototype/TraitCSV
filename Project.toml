@@ -14,8 +14,8 @@ InlineStrings = "842dd82b-1e85-43dc-bf29-5d0ee9dffc48"
 TraitCSVInlineStringsExt = "InlineStrings"
 
 [sources]
-TraitTables = {path = "../TraitTables-unified"}
-TraitWorld = {path = "../TraitWorld-unified"}
+TraitTables = {path = "../TraitTables"}
+TraitWorld = {path = "../TraitWorld"}
 
 [compat]
 InlineStrings = "1.4"

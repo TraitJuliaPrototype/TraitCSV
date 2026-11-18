@@ -7,7 +7,7 @@ A CSV reader written in the trait world, producing TraitTables tables: the reade
 This branch follows the design under "traits are abstract types" on Julia's unified build (`julia-unified`, branch `unified`), with TraitWorld's branch `unified`. The sections below describe the earlier build (branch `main`).
 
 - `CSVColumn{T} <: Column{T}`; candidate columns plain in a `Vector{CSVColumn}`, cast at the reader's loop; the InlineStrings extension declares `Vector{String15}` a member.
-- Tests: 14 pass on `julia-unified` (2026-11-08, `unified` f90d152208; `experiments/unification/stack/logs/w104-slice1-TraitCSV.log`).
+- Tests: 14 pass on `julia-unified` (2026-11-08, `unified` f90d152208; `experiments/implementation/stack/logs/w104-slice1-TraitCSV.log`).
 
 - **`CSVColumn{T} <: Column`** (`src/CSVCore.jl`): the columns the reader can parse into, `parsecell!(c, s, a, b)` and `emptylike(c)`. Implementations: `Vector{Int}`, `Vector{Float64}`, `Vector{Union{Missing, Int}}` and `Vector{Union{Missing, Float64}}` (an empty cell is missing; session 30), `Vector{String}`; InlineStrings' `String15` in the extension `ext/TraitCSVInlineStringsExt.jl`.
 - **What package extensions become:** CSV.jl's `CSVInlineStringsExt` adds methods to CSV's internal functions and so discards CSV's compiled read path whenever InlineStrings loads, also for files without strings. Here the extension declares one implementation, a method of the `conformance` registry, which invalidates no compiled code of the reader (TraitReport row 11).
