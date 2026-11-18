@@ -15,8 +15,9 @@ A CSV reader written with traits, producing TraitTables tables. The column types
 
 ## How it uses the design
 
-- `CSVColumn` erases nothing by default (no `@default_dynamic`). The candidate columns are plain members in a container typed by the trait. The reader passes each candidate's empty column as it is to `fillcolumn`, and Julia compiles the call for the column's type (`src/CSVCore.jl`). No box or wrapper is made.
-- The tests read into a column type of their own (`Flags`) and check that the reader's code was compiled for it (`test/runtests.jl`).
+- `CSVColumn` erases nothing by default (no `@default_dynamic`). The candidate columns are plain members in a container typed by the trait.
+- The reader hands each candidate's empty column over as the wrapper, `compiled_for(emptylike(c))`, to `fillcolumn`, which parses the cells into it (`src/CSVCore.jl`). In a session the wrapper is made for the column's type, and `fillcolumn` runs code compiled for it. In a trimmed build the wrapper's constructor branches over the column types the program uses; the build does not yet carry the branches on to `fillcolumn` where there are more than three (the design repository's open issue 242). The table gets the filled column itself, not the wrapper.
+- The tests read into a column type of their own (`Flags`) and check that the reader's code was compiled for it, at `Compiled{Flags}` (`test/runtests.jl`).
 
 ## Running
 

@@ -6,8 +6,9 @@
 #     ext/TraitCSVInlineStringsExt.jl). A membership invalidates no compiled code of the reader:
 #     this is what CSV.jl's package extensions become.
 #   - The reader tries the candidate column types in order, per column; each attempt runs code
-#     compiled per column type: the reader passes the empty column as it is, and the call is compiled
-#     for its type, as Julia compiles any call (traits §7.1). `CSVColumn` erases nothing by default.
+#     compiled per column type: the reader hands the empty column over as the wrapper
+#     `compiled_for(c)`, whose code is compiled for the column's type (traits §7.4, §7.6), in a session
+#     and in a closed build. `CSVColumn` erases nothing by default.
 module CSVCore
 using TraitWorld
 using TraitTables: TraitTables, Column, Table
@@ -106,12 +107,12 @@ end
 
 # --- reading: code per candidate column type --------------------------------------------------
 
-"Parse every cell into `c`; the filled column, or `nothing` at the first cell that does not fit."
+"Parse every cell into `c`; `false` at the first cell that does not fit."
 function fillcolumn(c::CSVColumn, s::String, spans::Vector{UnitRange{Int}})
     for r in spans
-        parsecell!(c, s, first(r), last(r)) || return nothing
+        parsecell!(c, s, first(r), last(r)) || return false
     end
-    return c
+    return true
 end
 
 "Read CSV text into a table; each column gets the first of `types` whose cells all parse."
@@ -121,8 +122,11 @@ function readtable(s::String, delim::UInt8, types::Vector{CSVColumn})::Table
     for k in eachindex(names)
         col = nothing
         for c in types
-            col = fillcolumn(emptylike(c), s, spans[k])    # the column type's code
-            col === nothing || break
+            e = emptylike(c)
+            if fillcolumn(compiled_for(e), s, spans[k])    # the column type's own code: the wrapper, which fills `e`
+                col = e
+                break
+            end
         end
         col === nothing && throw(ArgumentError("column \"$(names[k])\": no column type fits its cells"))
         push!(t.names, names[k])

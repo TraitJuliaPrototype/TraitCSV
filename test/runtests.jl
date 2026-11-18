@@ -44,10 +44,10 @@ TraitCSV.CSVCore.emptylike(f::Flags) = Flags(Bool[])
 "Whether `f` holds code compiled for an argument of type `T` first."
 compiled_at(f, T) = any(mi -> mi !== nothing && isdefined(mi, :cache) && mi.specTypes <: Tuple{typeof(f), T, Vararg},
                         [mi for m in methods(f) for mi in Base.specializations(m)])
-# each attempt at a column type runs code compiled for that type: the reader passes the empty column as it
-# is, and Julia compiles the call for its type (traits §7.1)
+# each attempt at a column type runs code compiled for that type: the reader hands the empty column over as
+# the wrapper `compiled_for(c)`, whose code is compiled for the object's type (traits §7.4, §7.6)
 @testset "TraitCSV: a column's code per column type" begin
     t = TraitCSV.parse("ok,n\ntrue,1\nfalse,2\n"; types = [Int[], Flags(Bool[]), String[]])
     @test t["ok"] isa Flags && cell(t["ok"], 2) === false && t["n"] == [1, 2]
-    @test compiled_at(TraitCSV.CSVCore.fillcolumn, Flags)
+    @test compiled_at(TraitCSV.CSVCore.fillcolumn, Compiled{Flags})
 end
