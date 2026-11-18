@@ -32,7 +32,22 @@ using InlineStrings: String15
     @test size(TraitCSV.read(path; delim = ';')) == (1, 2)
 end
 
-# a cast or a carried attribute at a parameter no trait types has no effect (open issue 162)
-@testset "TraitCSV: no casts without effect" begin
-    @test isempty(detect_unused_casts(TraitCSV))
+# a column type of the user's own: `true` and `false` cells
+struct Flags; v::Vector{Bool}; end
+Base.eltype(::Type{Flags}) = Bool                       # the trait's equation T = eltype(Self)
+TraitTables.nrows(f::Flags) = length(f.v)
+TraitTables.cell(f::Flags, i::Int) = f.v[i]
+TraitCSV.CSVCore.parsecell!(f::Flags, s::String, a::Int, b::Int) =
+    (x = tryparse(Bool, SubString(s, a, b)); x === nothing ? false : (push!(f.v, x); true))
+TraitCSV.CSVCore.emptylike(f::Flags) = Flags(Bool[])
+@implement CSVColumn Flags
+"Whether `f` holds code compiled for an argument of type `T` first."
+compiled_at(f, T) = any(mi -> mi !== nothing && isdefined(mi, :cache) && mi.specTypes <: Tuple{typeof(f), T, Vararg},
+                        [mi for m in methods(f) for mi in Base.specializations(m)])
+# each attempt at a column type runs code compiled for that type: the reader passes the empty column as it
+# is, and Julia compiles the call for its type (traits §7.1)
+@testset "TraitCSV: a column's code per column type" begin
+    t = TraitCSV.parse("ok,n\ntrue,1\nfalse,2\n"; types = [Int[], Flags(Bool[]), String[]])
+    @test t["ok"] isa Flags && cell(t["ok"], 2) === false && t["n"] == [1, 2]
+    @test compiled_at(TraitCSV.CSVCore.fillcolumn, Flags)
 end

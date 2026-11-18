@@ -6,11 +6,12 @@
 #     ext/TraitCSVInlineStringsExt.jl). A membership invalidates no compiled code of the reader:
 #     this is what CSV.jl's package extensions become.
 #   - The reader tries the candidate column types in order, per column; each attempt runs code
-#     compiled per column type, where the reader casts the column with `compiled_for`.
+#     compiled per column type: the reader passes the empty column as it is, and the call is compiled
+#     for its type, as Julia compiles any call (traits §7.1). `CSVColumn` erases nothing by default.
 module CSVCore
 using TraitWorld
 using TraitTables: TraitTables, Column, Table
-@trait_module
+@trait_module first_seen = false     # a trait argument compiled as Julia compiles it (traits §7.1; the library's default differs: T-127)
 export CSVColumn, parsecell!, emptylike, defaulttypes, addtype!, readtable
 
 "A column the reader parses cells into: `parsecell!` appends the cell `s[a:b]` or returns `false` (the column type does not fit)."
@@ -120,7 +121,7 @@ function readtable(s::String, delim::UInt8, types::Vector{CSVColumn})::Table
     for k in eachindex(names)
         col = nothing
         for c in types
-            col = fillcolumn(compiled_for(emptylike(c)), s, spans[k])    # the column type's code
+            col = fillcolumn(emptylike(c), s, spans[k])    # the column type's code
             col === nothing || break
         end
         col === nothing && throw(ArgumentError("column \"$(names[k])\": no column type fits its cells"))

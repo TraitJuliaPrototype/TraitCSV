@@ -15,8 +15,9 @@ A CSV reader written with traits, producing TraitTables tables. The column types
 
 ## How it uses the design
 
-- `CSVColumn` erases nothing by default (no `@default_dynamic`). The candidate columns are plain members in a container typed by the trait.
-- Not yet on the design's one way to erase: the reader casts each candidate column with `compiled_for(emptylike(c))` at the call of `fillcolumn` (`src/CSVCore.jl`), and the tests call `detect_unused_casts` (`test/runtests.jl`). This is recorded as deviation T-128 of the traits reference.
+- `CSVColumn` erases nothing by default (no `@default_dynamic`). The candidate columns are plain members in a container typed by the trait. The reader passes each candidate's empty column as it is to `fillcolumn`, and Julia compiles the call for the column's type (`src/CSVCore.jl`). No box or wrapper is made.
+- `CSVCore` writes `@trait_module first_seen = false`: a trait argument is compiled as Julia compiles it. The library's `@trait_module` sets the option `first_seen` unless it is written, which compiles a trait argument once at a call whose caller does not know the value's type. This is deviation T-127 of the traits reference; the line goes when the library's default follows the design.
+- The tests read into a column type of their own (`Flags`) and check that the reader's code was compiled for it (`test/runtests.jl`).
 
 ## Running
 
@@ -34,6 +35,7 @@ The tests read files with and without the extension, refuse a membership declare
 The current numbers, each against plain Julia or Python, are in the design repository's `writeup/design/evidence.md`. The suites' last results are in its `writeup/state.md` §3.
 
 - Tests: 14 pass on `julia-unified` (2026-11-08, `unified` f90d152208; `experiments/implementation/stack/logs/w104-slice1-TraitCSV.log`).
+- Tests on `julia-next`: 16 pass in 2 testsets (2026-11-18, `next` 02139b2168, TraitWorld 3e64ede; `experiments/implementation/w156/logs/after-csv.log`).
 
 ## The design
 
